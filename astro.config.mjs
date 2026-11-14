@@ -6,6 +6,8 @@ import rehypeKatex from 'rehype-katex';
 import mdx from '@astrojs/mdx';
 
 export default defineConfig({
+  site: 'https://philipppk.github.io',
+  base: '/mathisbeautiful',
   output: 'static',
   markdown: {
     processor: unified({
