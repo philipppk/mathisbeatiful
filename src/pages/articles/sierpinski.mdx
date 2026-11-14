@@ -1,0 +1,83 @@
+---
+layout: ../../layouts/Base.astro
+title: Sierpinski Triangle
+---
+import SketchCanvas from '../../components/SketchCanvas.astro';
+
+# The Sierpinski Triangle
+
+Consider the following experiment: Place three points $A, B$ and $C$ uniformly on the border of a circle. Then we put one point $X_1$ in the middle of the circle. From there we continously sample points $X_2,X_3, \dots$ by choosing one point $Y \in \{ A,B,C\}$ randomly, and setting 
+
+$$
+X_{n+1} = (X_n+Y)/2
+$$
+
+ie. a new point is exactly in the middle of the previous point and a random corner $A,B,C$ (you will see in a second why we speak of corners). Lets do that up to $2^{15}$. Then we get the following picture:
+
+<SketchCanvas
+  script="random_dots_sirpinski.js"
+  width={400}
+  height={400}
+  params={{ lp: 15, corners: 3, g: 0.5 }}
+/>
+
+We see that a Sierpinski triangle emerges where the corners align exactly with our points $A,B$ and $C$. 
+
+**Suggestion:** Try to lower the number of points to see that the points are really just chosen randomly. For a smaller exponent, the border will not be as clearly visible.
+
+Lets think a moment why that happens: If we look closely, we can see our starting point $X_1$ in the middle, exactly in the center of the big white triangle. We will call it a layer-$1$-triangle. The next point $X_2$ will lie exactly in the middle of $X_1$ and a corner. If we look closely again, we can find it in one of the three triangles, that are just a bit smaller. We will call them layer-$2$-triangles. At this point it is a sensible assumption that in general $X_n$ will lie in the center of a layer-$n$-triangle.
+
+Given this, it makes sense, that the points appear to lie on the lines in the Sierpinski triangle. The larger $n$ becomes, the closer does the center of a layer-$n$-triangle approach a line. Since we draw a large number of points, most of them will be drawn so closely to a line in the Sierpinski triangle, that it appears as if we placed all of them randomly there.
+
+We can even proof our assumption: Clearly, the centers of the layer-$n$-triangles are exactly the points that can be reached by choosing directions $d_1,d_2,\dots,d_{n-1} \in \{A,B,C\}$, and then walking the steps $\frac{d_1}{2},\frac{d_2}{4},\frac{d_3}{8},\dots,\frac{d_{n-1}}{2^n}$, so that we end up at the point 
+
+$$
+\sum_{i=1}^{n-1} \frac{d_i}{2^{i+1}}
+$$
+
+On the other hand, to sample our points, we also choose corners $c_1,c_2,\dots,c_{n-1} \in \{A,B,C\}$ and compute
+
+$$
+X_n = ((((\dots)/2+ c_{n-3})/2+c_{n-2})/2+c_{n-1})/2 
+$$
+
+**Suggestion:** To finish the proof, think about how a sequence $d_1, d_2, \dots$ can be chosen for a given sequence $c_1, c_2, \dots$, such that the resulting points are equal.
+
+## Trying something else
+
+Whats happens if we change parameters in our experiment? For example the number of corners? If we set it to two, we just end up with a line, so nothing interesting there. But we can make it more interesting by taking a point closer to the corner. For example, we could instead take the point
+
+$$
+  X_n = w X_{n-1} + (1-w) Y
+$$
+
+for some parameter $w \in [0,1]$ that we will call weight. Notice that for $w=\frac 1 3$ we end up with something that looks like the Cantor set: 
+
+<SketchCanvas
+  script="random_dots_sirpinski.js"
+  width={400}
+  height={400}
+  params={{ lp:15, corners: 2, g: 0.33 }}
+/>
+
+Can you find an explanation of why this happens? It could be similar to our explanation for the Sierpinski triangle.
+
+We found two other well-known fractals that can appear in this experiment. Taking $4$ corners and a weight of $\frac 1 3$ give the Sierpinski carpet:
+
+<SketchCanvas
+  script="random_dots_sirpinski.js"
+  width={400}
+  height={400}
+  params={{ lp: 15, corners: 4, g: 0.33 }}
+/>
+
+Taking $6$ corners and again a weight of $\frac 1 3$ give an assemblance of multiple Koch snowflakes:
+
+<SketchCanvas
+  script="random_dots_sirpinski.js"
+  width={400}
+  height={400}
+  params={{ lp: 15, corners: 6, g: 0.33 }}
+/>
+
+Can you find anything else that it is interesting or beautiful?

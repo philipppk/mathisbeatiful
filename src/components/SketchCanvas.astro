@@ -1,0 +1,150 @@
+---
+const {
+  script,
+  width = 400,
+  height = 400,
+  params = {},      // fixed values: these get no inputs
+  autorun = true,   // draw once on load; false waits for the button
+} = Astro.props;
+
+// Runs at build time only. Loads the sketch module in Node to read its `params`.
+const modules = import.meta.glob('../sketches/*.{js,ts}', { eager: true });
+const mod = modules[`../sketches/${script}`];
+if (!mod) {
+  throw new Error(`SketchCanvas: no sketch "${script}" in src/sketches`);
+}
+const schema = mod.params ?? {};
+
+for (const key of Object.keys(params)) {
+  if (!(key in schema)) console.warn(`SketchCanvas: "${script}" has no param "${key}"`);
+}
+
+// Only params that aren't fixed get an input.
+const controls = Object.entries(schema)//.filter(([key]) => !(key in params));
+---
+<style>
+  .canvas {
+    margin-left:auto;
+    margin-right:auto;
+    width:min-content;
+  }
+  canvas {
+    min-width: 400px;
+    aspect-ratio: 1;
+  }
+</style>
+
+<sketch-canvas
+  data-script={script}
+  data-width={width}
+  data-height={height}
+  data-params={JSON.stringify(controls.keys)}
+  data-autorun={String(autorun)}
+>
+  <div class="canvas">
+  <canvas width={width} height={height}></canvas>
+  <form autocomplete="off">
+    {controls.length > 0 && (
+      <div class="fields">
+        {controls.map(([key, spec]) => (
+          <label>
+            <span>{spec.label ?? key}</span>
+            <input
+              type="number"
+              name={key}
+              value={params[key] ?? spec.value}
+              min={spec.min}
+              max={spec.max}
+              step={spec.step ?? 'any'}
+              required
+            />
+          </label>
+        ))}
+      </div>
+    )}
+    <div class="actions">
+      <button type="submit">Draw</button>
+      <span class="status" role="status"></span>
+    </div>
+  </form>
+  </div>
+</sketch-canvas>
+
+<style is:global>
+  sketch-canvas { display: block; margin: 1.5rem 0; }
+  sketch-canvas canvas { max-width: 100%; border: 1px solid #8884; display: block; }
+  sketch-canvas .fields { display: grid; gap: .5rem; margin: 1rem 0 .75rem; }
+  sketch-canvas label { display: grid; grid-template-columns: 9rem 8rem; gap: .75rem; align-items: center; }
+  sketch-canvas .actions { display: flex; gap: 1rem; align-items: center; margin-top: .75rem; }
+  sketch-canvas .status { color: #c33; }
+</style>
+
+<script>
+  const sketches = import.meta.glob('../sketches/*.{js,ts}');
+
+  class SketchCanvas extends HTMLElement {
+    cleanup;
+
+    async connectedCallback() {
+      const { script, width, height, params, autorun } = this.dataset;
+      const canvas = this.querySelector('canvas');
+      const form = this.querySelector('form');
+      const status = this.querySelector('.status');
+
+      // Attach first, so a click before the sketch has loaded can't submit the form natively.
+      let render = null;
+      form.addEventListener('submit', (e) => {
+        e.preventDefault(); // runs after the browser's min/max/step validation
+        render?.();
+      });
+
+      const load = sketches[`../sketches/${script}`];
+      if (!load) {
+        status.textContent = `Sketch not found: ${script}`;
+        return;
+      }
+
+      const w = Number(width), h = Number(height);
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      const ctx = canvas.getContext('2d');
+      const info = { canvas, width: w, height: h, dpr };
+
+      const mod = await load();
+      const fixed = JSON.parse(params || '{}');
+
+      const collect = () => {
+        const values = { ...fixed };
+        for (const input of form.querySelectorAll('input[name]')) {
+          values[input.name] = input.valueAsNumber;
+        }
+        return values;
+      };
+
+      render = () => {
+        this.cleanup?.();
+        this.cleanup = undefined;
+        status.textContent = '';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        try {
+          const result = mod.default(ctx, info, collect());
+          if (typeof result === 'function') this.cleanup = result;
+        } catch (err) {
+          console.error(err);
+          status.textContent = `Error: ${err.message}`;
+        }
+      };
+
+      if (autorun !== 'false') render();
+    }
+
+    disconnectedCallback() {
+      this.cleanup?.();
+    }
+  }
+  customElements.define('sketch-canvas', SketchCanvas);
+</script>

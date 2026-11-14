@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+const allPosts = Object.values(import.meta.glob('./articles/*.mdx', { eager: true }));
+---
+<Base pageTitle={"Test"}>
+    <h1>Test</h1>
+    <ul>
+        {allPosts.map((post: any) => <li><a href={post.url}>{post.frontmatter.title}</a></li>)}
+    </ul>
+</Base>

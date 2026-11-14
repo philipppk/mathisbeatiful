@@ -1,0 +1,12 @@
+@font-face {
+    font-family: amiri; /* set name */
+    src: url(/Amiri-Regular.ttf); /* url of the font */
+}
+
+body {
+    max-width: 42rem; 
+    margin: 2rem auto; 
+    padding: 0 1rem;
+    font-family: amiri;
+    text-align: justify;
+}
